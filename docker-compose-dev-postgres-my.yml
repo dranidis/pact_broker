@@ -1,0 +1,45 @@
+version: "3"
+
+services:
+  postgres:
+    image: postgres@sha256:6cf6142afacfa89fb28b894d6391c7dcbf6523c33178bdc33e782b3b533a9342
+    healthcheck:
+      test: psql postgres --command "select 1" -U postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres-volume:/var/lib/postgresql/data
+
+  pact-broker:
+    build: .
+    ports:
+      - "9292:9292"
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres/postgres
+      PACT_BROKER_HIDE_PACTFLOW_MESSAGES: 'true'
+      PACT_BROKER_BASE_URL: 'http://localhost:9292 http://pact-broker:9292'
+    command: -wait tcp://postgres:5432 /usr/local/bin/start
+    entrypoint: dockerize
+    volumes:
+      - ./lib:/home/lib
+      - ./db:/home/db
+      - ./config.ru:/home/config.ru
+      - ./tasks:/home/tasks
+      - ./Rakefile:/home/Rakefile
+      - ./public:/home/public
+      - ./vendor/hal-browser:/home/vendor/hal-browser:ro
+
+  shell:
+    image: ruby:3.2.4-alpine@sha256:867125ca5fed8316e90a5fba593ecb86392073d6d26f44307f4936218d2f5613
+    depends_on:
+      - pact-broker
+    entrypoint: /bin/sh
+
+volumes:
+  postgres-volume:

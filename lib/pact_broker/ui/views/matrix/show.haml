@@ -147,8 +147,8 @@
             - line.consumer_version_branches.each do | branch |
               .tag-parent{"title": branch.tooltip, "data-toggle": "tooltip", "data-placement": "right"}
                 - branch_class = branch.latest? ? "tag badge badge-dark" : "tag badge badge-secondary"
-                %div{"class": branch_class}
-                  = "branch: " + ellipsisize(branch.name)
+                %div{class: "#{branch_class} text-wrap"}
+                  = branch.name
             - line.consumer_versions_in_environments.each do | version_in_environment |
               .tag-parent{"title": version_in_environment.tooltip, "data-toggle": "tooltip", "data-placement": "right"}
                 %a{href: version_in_environment.url}
@@ -184,8 +184,8 @@
             - line.provider_version_branches.each do | branch |
               .tag-parent{"title": branch.tooltip, "data-toggle": "tooltip", "data-placement": "right"}
                 - branch_class = branch.latest? ? "tag badge badge-dark" : "tag badge badge-secondary"
-                %div{"class": branch_class}
-                  = "branch: " + ellipsisize(branch.name)
+                %div{class: "#{branch_class} text-wrap"}
+                  = branch.name
             - line.provider_versions_in_environments.each do | version_in_environment |
               .tag-parent{"title": version_in_environment.tooltip, "data-toggle": "tooltip", "data-placement": "right"}
                 %a{href: version_in_environment.url}

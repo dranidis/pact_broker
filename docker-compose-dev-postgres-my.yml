@@ -13,6 +13,8 @@ services:
       POSTGRES_DB: postgres
     volumes:
       - postgres-volume:/var/lib/postgresql/data
+      # uncomment to use a database dump from the current directory
+      # - ./dump_original.sql:/docker-entrypoint-initdb.d/dump_original.sql
 
   pact-broker:
     build: .

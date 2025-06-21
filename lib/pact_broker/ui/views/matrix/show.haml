@@ -9,6 +9,8 @@
   %script{type: 'text/javascript', src: "#{base_url}/javascripts/matrix.js?v=#{PactBroker::VERSION}"}
   %script{type: 'text/javascript', src: "#{base_url}/javascripts/clipboard.js?v=#{PactBroker::VERSION}"}
   %script{type: 'text/javascript', src: "#{base_url}/js/bootstrap.bundle.min.js?v=#{PactBroker::VERSION}"}
+  %link{rel: 'stylesheet', href: "#{base_url}/css/jquery-ui.min.css"}
+  %script{type: 'text/javascript', src: "#{base_url}/js/jquery-ui.min.js"}
   %script{type: 'text/javascript', src: "#{base_url}/javascripts/set-css-asset-base-url.js?v=#{PactBroker::VERSION}"}
 
   .container
@@ -209,3 +211,36 @@
                 = line.verification_status
             - if line.pre_verified_message
               %span.pre-verified-icon{"aria-hidden": true}
+
+:javascript
+  $(function () {
+    const baseUrl = "#{base_url}";
+    const pacticipantNames = ["#{selectors[0].pacticipant_name}", "#{selectors[1].pacticipant_name}"];
+
+    pacticipantNames.forEach((pacticipantName, index) => {
+      const inputId = `#pacticipant${index}_branch`;
+
+      $.ajax({
+        url: `${baseUrl}/pacticipants/${encodeURIComponent(pacticipantName)}/branches`,
+        dataType: 'json',
+        success: function (data) {
+          const branches = (data._embedded && data._embedded.branches) || [];
+          const branchNames = branches.map(branch => branch.name).sort();
+
+          $(inputId).autocomplete({
+            source: branchNames,
+            minLength: 0
+          });
+
+          $(inputId).on('focus', function () {
+            $(this).autocomplete('search', '');
+          });
+        },
+        error: function (err) {
+          console.error(`Failed to fetch branches for ${pacticipantName}`, err);
+        }
+      });
+    });
+  });
+
+ 

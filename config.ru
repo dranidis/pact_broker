@@ -1,3 +1,5 @@
+$stdout.sync = true  # <-- Add this line at the very top to disable stdout buffering
+
 require "pact_broker"
 
 ENV["TZ"] = "Australia/Melbourne"

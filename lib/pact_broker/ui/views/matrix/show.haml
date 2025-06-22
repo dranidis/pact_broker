@@ -87,7 +87,6 @@
             To environment
           %input{name: 'environment', id: 'environment', value: options.environment_name }
 
-
       %div.top-of-group.form-check
         %input{type: 'radio', name: "latestby", class: 'form-check-input', value: '', id: 'all_rows', checked: options.all_rows_checked}
         %label{for: 'all_rows', class: "form-check-label"}
@@ -109,9 +108,23 @@
       %div.top-of-group
         %input{type: 'submit'}
 
-
     %p{style: 'text-align:right'}
       = "#{lines.size} rows"
+      |
+      %span#visible-row-count
+
+    %div.checkbox-group{style: 'display: flex; gap: 1rem; align-items: center; margin-bottom: 1rem;'}
+      %label
+        %input#only-with-branches{
+          type: 'checkbox',
+          value: '1',
+          checked: params[:include_empty_branches] == '1'
+        }
+        Hide rows where any pacticipant version has no branches
+      %label
+        %input#only-selected-participants{type: 'checkbox'}
+        Hide rows where the Consumer is not the 1st pacticipant
+
     %table.table.table-bordered.table-striped{id: 'matrix'}
       %thead
         %tr
@@ -135,7 +148,13 @@
             %span.sort-icon.sort
       %tbody
       - lines.each do | line |
-        %tr
+        %tr{
+          "data-consumer" => line.consumer_name,
+          "data-provider" => line.provider_name,
+          "data-consumer-has-branches" => line.consumer_version_branches.any?.to_s,
+          "data-provider-has-branches" => line.provider_version_branches.any?.to_s
+        }
+
           %td.consumer{'data-sort-value' => line.consumer_name, 'data-consumer-name' => line.consumer_name}
             %a{href: line.consumer_name_url}
               = line.consumer_name
@@ -243,4 +262,48 @@
     });
   });
 
- 
+
+:javascript
+  $(function () {
+    // Initial count set only once when DOM is ready
+    updateVisibleRowCount();
+
+    // Restore saved values from localStorage
+    $('#only-with-branches').prop('checked', localStorage.getItem('onlyWithBranches') === 'true');
+    $('#only-selected-participants').prop('checked', localStorage.getItem('onlySelectedParticipants') === 'true');
+    applyFilters();
+
+    // Bind change events for filters
+    $('#only-with-branches, #only-selected-participants').on('change', applyFilters);
+  });
+
+  function applyFilters() {
+    const onlyWithBranches = $('#only-with-branches').is(':checked');
+    const onlySelectedParticipants = $('#only-selected-participants').is(':checked');
+
+    $("tr[data-consumer]").each(function () {
+      const $row = $(this);
+      const hasConsumerBranches = $row.data('consumer-has-branches') || $row.data('consumer-has-branches') == 'true';
+      const hasProviderBranches = $row.data('provider-has-branches') || $row.data('provider-has-branches') == 'true';
+      const consumer = $row.data('consumer');
+      const provider = $row.data('provider');
+      const consumerName = $('#pacticipant10').val();
+      const providerName = $('#pacticipant11').val();
+
+      const showByBranches = !onlyWithBranches || (hasConsumerBranches && hasProviderBranches);
+      const showBySelected = !onlySelectedParticipants || (consumer === consumerName && provider === providerName);
+
+      $row.toggle(showByBranches && showBySelected);
+    });
+
+    updateVisibleRowCount();
+
+    localStorage.setItem('onlyWithBranches', onlyWithBranches);
+    localStorage.setItem('onlySelectedParticipants', onlySelectedParticipants);
+  }
+
+  function updateVisibleRowCount() {
+    const visibleCount = $("tr[data-consumer]:visible").length;
+    $("#visible-row-count").text(`(${visibleCount} visible)`);
+  }
+  

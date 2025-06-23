@@ -36,6 +36,68 @@ svg{
    margin: 40px 0 20px;
    border-bottom: 1px solid #eee;
  }
+ .collapse-container {
+     border: 1px solid #ddd;
+     border-radius: 6px;
+     padding: 16px;
+     max-width: 1000px;
+     margin-bottom: 20px;
+   }
+
+   .collapse-item {
+     border-top: 1px solid #ccc;
+   }
+
+   .collapse-item:first-child {
+     border-top: none;
+   }
+
+   .collapse-toggle {
+     display: block;
+     cursor: pointer;
+     font-family: monospace;
+     font-size: 14px;
+     text-decoration: none;
+     color: #dc3545;
+   }
+
+   .collapse-toggle:hover {
+     text-decoration: underline;
+   }
+
+   label.collapse-toggle {
+     margin-bottom: 0;
+   }
+
+   .collapse-content {
+     display: none;
+   }
+
+   input[type="checkbox"] {
+     display: none;
+   }
+
+   input[type="checkbox"]:checked ~ .collapse-content {
+     display: block;
+   }
+
+   .collapse-toggle .arrow {
+     display: inline-block;
+     transition: transform 0.2s ease;
+   }
+
+   input[type="checkbox"]:checked ~ .collapse-toggle .arrow {
+     transform: rotate(90deg);
+   }
+
+  .status-line {
+    /* @extend .mb-1, .d-flex, .align-items-center, .rounded, .px-2, .py-2; */
+    color: #721c24;
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    padding: 4px;
+    margin: 8px 0;
+  }   
 </style>
 <!-- HTML5 shim, for IE6-8 support of HTML5 elements -->
 <!--[if lt IE 9]>
@@ -86,6 +148,125 @@ svg{
           <% end %>
       </div>
     </div>
+
+    <% if deployed_versions %>
+      <div class="row mt-2" style="margin-bottom: 8px;">
+        <div class="col col-md-2">
+          Deployed:
+        </div>
+        <div class="col col-md-6">
+          <% deployed_versions.each do |dv| %>
+            <%= escape_html(dv.environment.name) %>
+            <span class="badge bg-success text-white"><%= escape_html(dv.version.number) %></span>
+            <small><%= "(#{dv.created_at.strftime("%Y-%m-%d")})" %></small>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <% if released_versions %>
+      <div class="row mt-2" style="margin-bottom: 8px;">
+        <div class="col col-md-2">
+          Released:
+        </div>
+        <script>
+          console.log("Released versions:", JSON.stringify(<%= released_versions.to_json %>, null, 2));
+        </script>
+        <div class="col col-md-6">
+          <% released_versions.each do |rv| %>
+          <div>
+            <%= escape_html(rv.environment.name) %>
+            <span class="badge bg-success text-white"><%= escape_html(rv.version.number) %></span>
+            <small><%= "(#{rv.created_at.strftime("%Y-%m-%d")})" %></small>
+          </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+
+    <div style="margin-bottom: 8px;">
+       Can I Deploy:
+    </div>
+    <script>
+      console.log("Can I deploy:", JSON.stringify(<%= can_i_deploy_data.to_json %>, null, 2));
+    </script>
+    <div class="collapse-container">
+      <% main_branch = pacticipant.main_branch %>
+      <% if main_branch.nil? || main_branch.empty? %>
+        <div class="alert alert-warning" role="alert">
+          No main branch set for this pacticipant.
+        </div>
+      <% end %>
+      <% can_i_deploy_data&.each_with_index do |(env, status), idx| %>
+          <div class="collapse-item">
+            <div> 
+              <div>
+                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px;">
+                  <img
+                    id="can-i-deploy-badge-<%= main_branch %>-<%= env %>"
+                    src="<%= "#{base_url}/pacticipants/#{ERB::Util.url_encode(pacticipant.name)}/branches/#{ERB::Util.url_encode(main_branch)}/latest-version/can-i-deploy/to-environment/#{ERB::Util.url_encode(env)}/badge" %>"
+                    alt="Can I Deploy badge for <%= main_branch %> in <%= env %>"
+                    style="height: 24px;"
+                  />
+                  <% if !status[:deployable] %>
+                    <input type="checkbox" id="toggle-<%= idx %>-<%= env %>" />
+                    <label for="toggle-<%= idx %>-<%= env %>" class="collapse-toggle">
+                    <span class="arrow">▶</span>Details
+                    </label>
+
+                    <div class="collapse-content">
+                      <div class="deployment-status bg-light rounded">
+                        <% status[:reason].split("\n").each do |line| %>
+                          <div class="status-line"><%= escape_html(line) %></div>
+                        <% end %>
+                      </div>
+                    </div>
+                  <% end %>                  
+                </div>
+              </div>
+            </div>
+          </div>
+      <% end %>
+    </div>
+
+    <script>
+      console.log("Can I merge", JSON.stringify(<%= can_i_merge_data.to_json %>, null, 2));
+    </script>
+    <% feature_branches = can_i_merge_data.keys.reject { |branch| main_branch == branch } %>
+      <div style="margin-bottom: 8px; margin-top: 24px;">
+        Can I Merge:
+      </div>
+    <% if feature_branches.any? %>
+      <div class="collapse-container">
+        <% feature_branches.each_with_index do |branch, idx| %>
+          <div class="collapse-item">
+            <div>
+                <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <% if can_i_merge_data[branch][:can_merge] %>
+                      <span class="badge bg-success text-white" id="can-i-merge-status-<%= branch %>">Y</span>
+                    <% else %>
+                      <span class="badge bg-danger text-white" id="can-i-merge-status-<%= branch %>">N</span>
+                    <% end %>
+                    <span><%= branch %></span>
+                    <% if !can_i_merge_data[branch][:can_merge] %>
+                        <input type="checkbox" id="merge-toggle-<%= idx %>" />
+                        <label for="merge-toggle-<%= idx %>" class="collapse-toggle">
+                            <span class="arrow">▶</span>Details
+                        </label>          
+
+                        <div class="collapse-content">
+                            <div class="deployment-status bg-light rounded">
+                            <% can_i_merge_data[branch][:reason].split("\n").each do |line| %>
+                              <div class="status-line"><%= escape_html(line) %></div>
+                            <% end %>
+                        </div>
+                    <% end %>                
+                </div>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
   </div>
 <% end %>
 
@@ -468,5 +649,7 @@ window.onload = function() {
     });
 }</script>
 <% end %>
+
+</div>
 </body>
 </html>

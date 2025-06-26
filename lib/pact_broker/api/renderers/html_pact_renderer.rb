@@ -29,7 +29,22 @@ module PactBroker
           "<html>
             <head>#{head}</head>
             <body>
-              #{breadcrumbs}#{pact_metadata}#{html}
+              <script id='full-pact-json' type='application/json'>#{@json_content}</script>
+              #{breadcrumbs}#{pact_metadata}
+            <link rel='stylesheet' href='/css/pact-download.css'>
+            <script src='#{base_url}/javascripts/pact-download-selected.js'></script>
+
+            <div class='toast-container'>
+              <div id='downloadToast' class='toast' role='alert' aria-live='assertive' aria-atomic='true'>
+                <div class='toast-body'></div>
+              </div>
+            </div>
+
+            <button id='toggle-all' onclick='toggleAllDetails()'>Expand All</button>
+            <button id='download-selected' disabled>Download selected interactions</button>
+            <button id='download-all'>Download all interactions</button>
+              
+             #{html}
             </body>
           </html>"
         end
@@ -182,10 +197,10 @@ module PactBroker
         end
 
         def markdown
-          Pact::Doc::Markdown::ConsumerContractRenderer.call consumer_contract
-        rescue StandardError
+          Pact::Doc::Markdown::ConsumerContractRenderer.call enriched_consumer_contract
+        rescue => e
           heading = "### A contract between #{@pact.consumer.name} and #{@pact.provider.name}"
-          warning = "_Note: this contract could not be parsed to a v1 or v2 Pact, showing raw content instead._"
+          warning = "An error of type: #{e.class} occured. Showing raw content."  
           pretty_json = JSON.pretty_generate(@pact.content_hash)
           "#{heading}\n#{warning}\n```json\n#{pretty_json}\n```\n"
         end
@@ -198,11 +213,54 @@ module PactBroker
           Pact::ConsumerContract.from_json(@json_content)
         rescue => e
           logger.info "Could not parse the following content to a Pact due to #{e.class} #{e.message}, showing raw content instead: #{@json_content}"
-          raise NotAPactError
+          raise e
+        end
+
+        def enriched_consumer_contract
+          contract = consumer_contract
+
+          consumer_version_number = @pact.respond_to?(:consumer_version_number) ? @pact.consumer_version_number : nil
+
+          branch = begin
+            if @pact.respond_to?(:consumer_version) && @pact.consumer_version.respond_to?(:branch_versions)
+              @pact.consumer_version.branch_versions.first&.branch&.name
+            else
+              nil
+            end
+          rescue NotImplementedError
+            nil
+          end
+
+          published_at = @pact.respond_to?(:created_at) ? @pact.created_at : nil
+
+          verifications = @pact.respond_to?(:verifications) ? @pact.verifications : []
+
+          OpenStruct.new(
+            consumer: contract.consumer,
+            provider: contract.provider,
+            interactions: contract.interactions,
+            consumer_version_number: consumer_version_number,
+            branch: branch,
+            published_at: published_at,
+            verifications: verifications
+          )
         end
 
         def h string
           Rack::Utils.escape_html(string)
+        end
+
+
+        def branch
+          begin
+            if @pact.respond_to?(:consumer_version) && @pact.consumer_version.respond_to?(:branch_versions)
+              @pact.consumer_version.branch_versions.first&.branch&.name
+            else
+              nil
+            end
+          rescue NotImplementedError
+            nil
+          end
         end
       end
     end

@@ -1,0 +1,69 @@
+.toast-container {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1050;
+}
+
+#downloadToast {
+  background-color: #28a745;
+  color: white;
+  border-radius: 10px;
+  border: none;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  min-width: 400px;
+}
+
+#downloadToast.error {
+  background-color: #dc3545;
+}
+
+#downloadToast .toast-body {
+  font-weight: bold;
+  padding: 15px 25px;
+  text-align: center;
+}
+
+/* Button styling */
+#toggle-all,
+#download-selected,
+#download-all {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  background-color: #f8f9fa;
+  color: #333;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+#toggle-all:hover,
+#download-selected:hover:not(:disabled),
+#download-all:hover {
+  background-color: #e9ecef;
+  border-color: #adb5bd;
+}
+
+#download-selected:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #e9ecef;
+}
+
+/* Button group spacing */
+#toggle-all {
+  margin-right: 30px; /* Increased spacing between button groups */
+}
+
+#download-selected,
+#download-all {
+  margin-left: 10px;
+}
+
+/* Hide buttons when no interactions */
+.no-interactions #download-selected,
+.no-interactions #download-all {
+  display: none;
+}

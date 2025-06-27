@@ -68,6 +68,12 @@ module Pact
 
             # Don't sort methods — keep order from input
             method_groups.map do |method, renderers|
+              method = case method
+                       when "FAKE_ASYNC_METHOD" then "ASYNC"
+                       when "FAKE_SYNC_METHOD" then "SYNC"
+                       else method.upcase
+                       end
+ 
               endpoint = "#{method} #{path}"
 
               <<~HTML

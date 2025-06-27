@@ -1,14 +1,25 @@
-<a name="<%= interaction.id %>"></a><% formatted_provider_states = h(interaction.formatted_provider_states mark_bold: true) %>
-<%= if !formatted_provider_states.empty?
-  "Given #{formatted_provider_states}, upon receiving"
-   else
-  "Upon receiving"
-   end
-%> **<%= h(interaction.description) %>** from <%= h(interaction.consumer_name) %>, with
-```json
-<%= interaction.request  %>
-```
+<a name="<%= interaction.id %>"></a>
+
+<details class="interaction-block">
+  <summary>
+    <input type="checkbox" class="interaction-checkbox" value="<%= interaction.id %>" data-interaction-json='<%= h(JSON.generate(interaction.raw_interaction)) %>' style="margin-right: 8px;" />
+    <span style="color: #0006ff;">
+    <strong><%= h(interaction.description.capitalize) %></strong>
+    <% if interaction.has_provider_state? %>
+      given <%= h(interaction.provider_state) %>
+    <% end %>
+    </span>
+  </summary>
+
+  <div class="interaction-content">
+    <input type="hidden" class="interaction-json" value='<%= h(JSON.generate(interaction.raw_interaction)) %>' />
+      <% if interaction.has_provider_state? %>
+        Given <strong><%= h(interaction.provider_state) %></strong>,
+      <% end %>
+      upon receiving a <strong><%= h(interaction.description) %></strong>
+      from <%= h(interaction.consumer_name) %><br />
+        <pre><code class="json"><%= interaction.request %></code></pre>
 <%= h(interaction.provider_name) %> will respond with:
-```json
-<%= interaction.response %>
-```
+        <pre><code class="json"><%= interaction.response %></code></pre>
+  </div>
+</details>

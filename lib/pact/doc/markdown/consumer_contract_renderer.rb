@@ -16,7 +16,7 @@ module Pact
         end
 
         def call
-          title + summaries_title + summaries + interactions_title + full_interactions
+          title + full_interactions
         end
 
         private
@@ -35,16 +35,59 @@ module Pact
           "### Requests from #{consumer_name} to #{provider_name}\n\n"
         end
 
-        def interactions_title
-          "### Interactions\n\n"
-        end
-
         def summaries
           interaction_renderers.collect(&:render_summary).join
         end
 
         def full_interactions
-          interaction_renderers.collect(&:render_full_interaction).join
+          # Group by path first
+          grouped_by_path = interaction_renderers.group_by do |renderer|
+            path = renderer.interaction.request_path
+
+            # request_path can be a String or a Term
+            # If it's a Term, we need to generate it to get the actual path
+            # If it's a String, we can use it directly
+            # If it's neither, we return a placeholder string
+            # This ensures we can handle both cases without errors
+            if path.is_a?(String)
+              path
+            elsif path.respond_to?(:generate) && path.generate.is_a?(String)
+              path.generate
+            else
+              logger.error "⚠️ ERROR: Unexpected path or generate result: #{path.inspect} in interaction '#{renderer.interaction.description}'. Method: ConsumerContractRenderer::full_interactions "
+              "RequestPathNotCorrectlyIdentified"
+            end            
+          end
+
+          # Sort paths alphabetically
+          sorted_paths = grouped_by_path.keys.sort_by(&:downcase)
+
+          # Build output with collapsible sections
+          sorted_paths.map do |path|
+            method_groups = grouped_by_path[path].group_by { |renderer| renderer.interaction.request_method.upcase }
+
+            # Don't sort methods — keep order from input
+            method_groups.map do |method, renderers|
+              endpoint = "#{method} #{path}"
+
+              <<~HTML
+                <details class="endpoint-group">
+                  <summary>
+                    <span class="arrow-box" aria-hidden="true"></span>
+                    <code class="endpoint-code">#{h endpoint}</code>
+                  </summary>
+                  <div class="interaction-group">
+                    #{renderers.map(&:render_full_interaction).join}
+                  </div>
+                </details>
+              HTML
+            end.join("\n")
+          end.join("\n")
+        end
+        
+
+        def request_method
+          request["method"].to_s.upcase
         end
 
         def sorted_interactions

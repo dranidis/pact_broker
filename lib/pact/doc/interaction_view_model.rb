@@ -77,9 +77,31 @@ module Pact
         fix_json_formatting JSON.pretty_generate(clean_response)
       end
 
+      def raw_interaction
+        if @interaction.respond_to?(:as_json)
+          @interaction.as_json
+        elsif @interaction.respond_to?(:to_hash)
+          @interaction.to_hash
+        else
+          @interaction
+        end
+      end
+
+      def raw_request
+        stringify_keys(@interaction.request)
+      end
+
+      def raw_response
+        stringify_keys(@interaction.response)
+      end
+
       private
 
       attr_reader :interaction, :consumer_contract
+
+      def stringify_keys(hash)
+        hash.each_with_object({}) { |(k, v), h| h[k.to_s] = v }
+      end
 
       def clean_request
         reified_request = Reification.from_term(interaction.request)

@@ -75,3 +75,11 @@ img.pact_badge {
   display: flex;
   justify-content: flex-start;
 }
+
+.ui-autocomplete {
+  max-height: 400px;
+  max-width: 450px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 1000 !important;
+}
